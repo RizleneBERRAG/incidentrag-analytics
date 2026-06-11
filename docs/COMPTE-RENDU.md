@@ -13,7 +13,7 @@
 
 **Projet** : B - IncidentRAG Analytics
 **Vector store** : Chroma
-**Dépôt GitHub** : https://github.com/___
+**Dépôt GitHub** : https://github.com/RizleneBERRAG/incidentrag-analytics
 
 ---
 

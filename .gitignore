@@ -8,8 +8,13 @@ __pycache__/
 # Variables sensibles
 .env
 
-# Corpus local / fichiers lourds
-corpus/*
+# Corpus téléchargé localement : non committé
+corpus/raw/
+corpus/chunks.jsonl
+
+# Corpus seed fourni par le TP : committé
+!corpus/seed/
+!corpus/seed/**
 !corpus/.gitkeep
 
 # Bases vectorielles / volumes locaux

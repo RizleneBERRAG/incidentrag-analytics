@@ -126,17 +126,17 @@ incidentrag-analytics/
 
 | Métrique                     | Valeur      |
 | ---------------------------- | ----------- |
-| Score similarité moyen top-k | À compléter |
-| Latence p50 / p95            | À compléter |
-| Tokens moyens                | À compléter |
+| Score similarité moyen top-k | |
+| Latence p50 / p95            | |
+| Tokens moyens                | |
 
 ### Analytique
 
 | Analyse                          | Résultat    |
 | -------------------------------- | ----------- |
-| Top produits / éditeurs affectés | À compléter |
-| Clusters thématiques découverts  | À compléter |
-| Tendance des avis par mois       | À compléter |
+| Top produits / éditeurs affectés | |
+| Clusters thématiques découverts  | |
+| Tendance des avis par mois       | |
 
 Les graphiques matplotlib seront ajoutés lorsque l'analyse du corpus sera réalisée.
 
@@ -156,13 +156,11 @@ Difficultés prévues ou rencontrées :
 
 ## 9. Bonus - Tendances temporelles approfondies
 
-À compléter si le temps le permet.
 
 ---
 
 ## 10. Bonus - Monitoring de l'analyse en continu
 
-À compléter si le temps le permet.
 
 ---
 

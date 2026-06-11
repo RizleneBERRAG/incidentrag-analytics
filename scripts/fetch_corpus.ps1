@@ -10,7 +10,7 @@ if (!(Test-Path $OutputDir)) {
     New-Item -ItemType Directory -Path $OutputDir | Out-Null
 }
 
-Write-Host "Récupération des avis CERT-FR..."
+Write-Host "Recuperation des avis CERT-FR..."
 Write-Host "Nombre maximum d'avis : $Limit"
 Write-Host "Dossier de sortie : $OutputDir"
 Write-Host ""
@@ -54,27 +54,26 @@ while ($avisLinks.Count -lt $Limit -and $page -le 10) {
 }
 
 Write-Host ""
-Write-Host "Avis trouvés : $($avisLinks.Count)"
+Write-Host "Avis trouves : $($avisLinks.Count)"
 Write-Host ""
 
 $index = 1
 
 foreach ($avisUrl in $avisLinks) {
-    Write-Host "Téléchargement $index/$($avisLinks.Count) : $avisUrl"
+    Write-Host "Telechargement $index/$($avisLinks.Count) : $avisUrl"
 
     try {
-        $avisResponse = Invoke-WebRequest -Uri $avisUrl -UseBasicParsing
-        $avisHtml = $avisResponse.Content
-
         $certIdMatch = [regex]::Match($avisUrl, 'CERTFR-[0-9]{4}-AVI-[0-9]{4}')
         $certId = $certIdMatch.Value
 
         $outputFile = Join-Path $OutputDir "$certId.html"
 
-        $avisHtml | Set-Content -Path $outputFile -Encoding UTF8
+        # Important : -OutFile permet de conserver le fichier HTML brut
+        # sans casser les accents.
+        Invoke-WebRequest -Uri $avisUrl -UseBasicParsing -OutFile $outputFile
     }
     catch {
-        Write-Host "Erreur pendant le téléchargement de $avisUrl"
+        Write-Host "Erreur pendant le telechargement de $avisUrl"
         Write-Host $_.Exception.Message
     }
 
@@ -82,5 +81,5 @@ foreach ($avisUrl in $avisLinks) {
 }
 
 Write-Host ""
-Write-Host "Récupération terminée."
+Write-Host "Recuperation terminee."
 Write-Host "Les fichiers sont dans : $OutputDir"

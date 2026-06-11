@@ -1,0 +1,31 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Variables sensibles
+.env
+
+# Corpus local / fichiers lourds
+corpus/*
+!corpus/.gitkeep
+
+# Bases vectorielles / volumes locaux
+chroma/
+chroma_data/
+qdrant_storage/
+postgres_data/
+
+# Fichiers générés
+*.log
+*.tmp
+
+# Système
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

@@ -14,8 +14,7 @@ OUTPUT_FILE = Path("corpus/chunks.jsonl")
 
 class HTMLTextExtractor(HTMLParser):
     """
-    Petit extracteur HTML basé uniquement sur la librairie standard Python.
-    Il permet de récupérer le texte utile sans dépendance externe.
+    Extrait le texte brut d'un fichier HTML.
     """
 
     def __init__(self):
@@ -27,14 +26,14 @@ class HTMLTextExtractor(HTMLParser):
         if tag in {"script", "style", "noscript"}:
             self.skip = True
 
-        if tag in {"p", "div", "section", "article", "h1", "h2", "h3", "li", "br"}:
+        if tag in {"p", "div", "section", "article", "h1", "h2", "h3", "li", "br", "tr", "td"}:
             self.parts.append("\n")
 
     def handle_endtag(self, tag):
         if tag in {"script", "style", "noscript"}:
             self.skip = False
 
-        if tag in {"p", "div", "section", "article", "h1", "h2", "h3", "li"}:
+        if tag in {"p", "div", "section", "article", "h1", "h2", "h3", "li", "tr"}:
             self.parts.append("\n")
 
     def handle_data(self, data):
@@ -52,6 +51,7 @@ def clean_text(text: str) -> str:
     Nettoie le texte extrait du HTML.
     """
     text = html_lib.unescape(text)
+    text = text.replace("\ufeff", "")
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
@@ -65,6 +65,43 @@ def html_to_text(html_content: str) -> str:
     return clean_text(parser.get_text())
 
 
+def keep_certfr_useful_content(text: str) -> str:
+    """
+    Supprime une partie du bruit de navigation du site CERT-FR.
+    On garde principalement le contenu de l'avis.
+    """
+    start_markers = [
+        "Paris, le ",
+        "Affaire suivie par:",
+        "Avis du CERT-FR",
+        "Gestion du document",
+        "Référence CERTFR",
+    ]
+
+    start_positions = []
+
+    for marker in start_markers:
+        position = text.find(marker)
+        if position != -1:
+            start_positions.append(position)
+
+    if start_positions:
+        text = text[min(start_positions):]
+
+    end_markers = [
+        "Retour en haut de page",
+        "Plan du site",
+        "Flux RSS complet",
+    ]
+
+    for marker in end_markers:
+        position = text.find(marker)
+        if position != -1:
+            text = text[:position]
+
+    return clean_text(text)
+
+
 def extract_title(html_content: str, fallback: str) -> str:
     """
     Extrait un titre depuis la balise h1 ou title.
@@ -72,19 +109,22 @@ def extract_title(html_content: str, fallback: str) -> str:
     h1_match = re.search(r"<h1[^>]*>(.*?)</h1>", html_content, re.IGNORECASE | re.DOTALL)
 
     if h1_match:
-        return html_to_text(h1_match.group(1))
+        title = html_to_text(h1_match.group(1))
+        return title.replace("Objet:", "").strip()
 
     title_match = re.search(r"<title[^>]*>(.*?)</title>", html_content, re.IGNORECASE | re.DOTALL)
 
     if title_match:
-        return html_to_text(title_match.group(1))
+        title = html_to_text(title_match.group(1))
+        title = title.replace("- CERT-FR", "").strip()
+        return title.replace("Objet:", "").strip()
 
     return fallback
 
 
 def extract_cert_id(file_path: Path) -> str:
     """
-    Extrait l'identifiant CERT-FR à partir du nom du fichier.
+    Extrait l'identifiant CERT-FR depuis le nom du fichier.
     Exemple : CERTFR-2026-AVI-0731
     """
     match = re.search(r"CERTFR-\d{4}-AVI-\d{4}", file_path.name)
@@ -107,6 +147,66 @@ def extract_year(cert_id: str) -> str:
     return ""
 
 
+def extract_first_version_date(text: str) -> str:
+    """
+    Extrait la date de première version si elle est présente.
+    """
+    match = re.search(r"Date de la première version\s+([0-9]{1,2}\s+\w+\s+\d{4})", text)
+
+    if match:
+        return match.group(1)
+
+    match = re.search(r"Paris, le\s+([0-9]{1,2}\s+\w+\s+\d{4})", text)
+
+    if match:
+        return match.group(1)
+
+    return ""
+
+
+def extract_risks(text: str) -> str:
+    """
+    Extrait la partie Risque(s) si elle est présente.
+    """
+    match = re.search(r"Risque\(s\)\s+(.*?)\s+Syst", text)
+
+    if match:
+        return clean_text(match.group(1))
+
+    return ""
+
+
+def extract_systems(text: str) -> str:
+    """
+    Extrait la partie systèmes affectés si elle est présente.
+    """
+    patterns = [
+        r"Système\(s\) affecté\(s\)\s+(.*?)\s+Résumé",
+        r"Systèmes affectés\s+(.*?)\s+Résumé",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, text)
+
+        if match:
+            return clean_text(match.group(1))
+
+    return ""
+
+
+def extract_product_from_title(title: str) -> str:
+    """
+    Essaie d'extraire le produit depuis le titre.
+    Exemple : Multiples vulnérabilités dans Typo3 -> Typo3
+    """
+    match = re.search(r"dans\s+(.+)$", title, re.IGNORECASE)
+
+    if match:
+        return match.group(1).strip()
+
+    return ""
+
+
 def read_html_documents(corpus_dir: Path) -> list[dict]:
     """
     Lit les fichiers HTML téléchargés dans corpus/raw.
@@ -124,18 +224,24 @@ def read_html_documents(corpus_dir: Path) -> list[dict]:
 
         cert_id = extract_cert_id(file_path)
         title = extract_title(html_content, cert_id)
-        text = html_to_text(html_content)
 
-        if not text:
+        full_text = html_to_text(html_content)
+        useful_text = keep_certfr_useful_content(full_text)
+
+        if not useful_text:
             continue
 
         documents.append({
             "cert_id": cert_id,
             "title": title,
             "year": extract_year(cert_id),
+            "date": extract_first_version_date(useful_text),
+            "product": extract_product_from_title(title),
+            "risks": extract_risks(useful_text),
+            "systems": extract_systems(useful_text),
             "source": str(file_path),
             "url": f"https://www.cert.ssi.gouv.fr/avis/{cert_id}/",
-            "content": text
+            "content": useful_text
         })
 
     return documents
@@ -179,6 +285,10 @@ def build_chunks(documents: list[dict]) -> list[dict]:
                     "cert_id": doc["cert_id"],
                     "title": doc["title"],
                     "year": doc["year"],
+                    "date": doc["date"],
+                    "product": doc["product"],
+                    "risks": doc["risks"],
+                    "systems": doc["systems"],
                     "source": doc["source"],
                     "url": doc["url"],
                     "chunk_index": index,

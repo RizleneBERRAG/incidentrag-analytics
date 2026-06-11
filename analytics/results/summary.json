@@ -1,0 +1,100 @@
+{
+  "total_chunks": 226,
+  "total_documents": 10,
+  "top_products": [
+    [
+      "Typo3",
+      1
+    ],
+    [
+      "Stormshield Network Security",
+      1
+    ],
+    [
+      "les produits Ivanti",
+      1
+    ],
+    [
+      "les produits Fortinet",
+      1
+    ],
+    [
+      "Microsoft Edge",
+      1
+    ],
+    [
+      "Microsoft Office",
+      1
+    ],
+    [
+      "Microsoft Windows",
+      1
+    ],
+    [
+      "Microsoft .Net",
+      1
+    ],
+    [
+      "Microsoft Azure",
+      1
+    ],
+    [
+      "les produits Microsoft",
+      1
+    ]
+  ],
+  "documents_by_year": [
+    [
+      "2026",
+      10
+    ]
+  ],
+  "documents_by_month": [
+    [
+      "2026-06",
+      10
+    ]
+  ],
+  "chunks_by_document": [
+    [
+      "CERTFR-2026-AVI-0731",
+      101
+    ],
+    [
+      "CERTFR-2026-AVI-0728",
+      60
+    ],
+    [
+      "CERTFR-2026-AVI-0726",
+      22
+    ],
+    [
+      "CERTFR-2026-AVI-0727",
+      17
+    ],
+    [
+      "CERTFR-2026-AVI-0722",
+      7
+    ],
+    [
+      "CERTFR-2026-AVI-0724",
+      4
+    ],
+    [
+      "CERTFR-2026-AVI-0725",
+      4
+    ],
+    [
+      "CERTFR-2026-AVI-0729",
+      4
+    ],
+    [
+      "CERTFR-2026-AVI-0730",
+      4
+    ],
+    [
+      "CERTFR-2026-AVI-0723",
+      3
+    ]
+  ]
+}

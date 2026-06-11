@@ -53,33 +53,58 @@ Corpus : avis de sécurité CERT-FR
 
 ```txt
 incidentrag-analytics/
-├── app/
-│   ├── ingest.py       # Préparation et découpage du corpus
-│   ├── embed.py        # Génération des embeddings
-│   ├── store.py        # Connexion au vector store Chroma
-│   ├── retrieve.py     # Recherche des passages pertinents
-│   ├── generate.py     # Génération de réponse avec l'IA
-│   ├── api.py          # API FastAPI
-│   └── metrics.py      # Mesures de latence, tokens et qualité
-│
-├── analytics/
-│   └── clustering.py   # Analyse du corpus et clustering
-│
-├── corpus/
-│   └── .gitkeep        # Dossier du corpus local
-│
-├── docs/
-│   └── COMPTE-RENDU.md # Compte rendu du projet
-│
-├── scripts/
-│   └── fetch_corpus.ps1 # Récupération du corpus
-│
+├── README.md
+├── docker-compose.yml
 ├── .env.example
 ├── .gitignore
-├── docker-compose.yml
 ├── requirements.txt
-└── README.md
+│
+├── scripts/
+│   ├── fetch_corpus.sh
+│   └── fetch_corpus.ps1
+│
+├── corpus/
+│   ├── seed/
+│   │   └── .gitkeep
+│   └── raw/
+│       └── .gitkeep
+│
+├── app/
+│   ├── ingest.py
+│   ├── embed.py
+│   ├── store.py
+│   ├── retrieve.py
+│   ├── generate.py
+│   ├── api.py
+│   └── metrics.py
+│
+├── analytics/
+│   ├── clustering.py
+│   ├── trends.py
+│   └── plots.py
+│
+├── docs/
+│   └── COMPTE-RENDU.md
+
 ```
+
+
+
+## Variables d'environnement
+
+Copiez le fichier `.env.example` :
+
+```bash
+cp .env.example .env
+
+
+```
+## Licence des données
+
+Les avis CERT-FR utilisés dans ce projet proviennent de données publiques mises à disposition par le CERT-FR.
+
+Le corpus seed est utilisé à des fins pédagogiques.
+
 
 ## Lancement prévu
 

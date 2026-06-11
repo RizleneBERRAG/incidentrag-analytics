@@ -124,6 +124,44 @@ incidentrag-analytics/
 
 ### Qualité et exploitation RAG
 
+La partie RAG complète dépend de l'indexation dans Chroma et de la génération LLM, qui seront finalisées dans les rôles R2 et R3.
+
+| Métrique                     | Valeur                                   |
+| ---------------------------- | ---------------------------------------- |
+| Score similarité moyen top-k |      |
+| Latence p50 / p95            |      |
+| Tokens moyens                |      |
+
+### Analytique
+
+Une première analyse du corpus CERT-FR a été réalisée à partir des chunks générés par le pipeline d'ingestion.
+
+| Analyse                          | Résultat                                                                                                                                                        |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nombre de documents analysés     | 10 avis CERT-FR                                                                                                                                                 |
+| Nombre de chunks générés         | 226 chunks                                                                                                                                                      |
+| Top produits / éditeurs affectés | Typo3, Stormshield Network Security, Ivanti, Fortinet, Microsoft Edge, Microsoft Office, Microsoft Windows, Microsoft .Net, Microsoft Azure, produits Microsoft |
+| Tendance des avis par mois       | 10 avis en 2026-06                                                                                                                                              |
+| Documents les plus volumineux    | CERTFR-2026-AVI-0731 : 101 chunks ; CERTFR-2026-AVI-0728 : 60 chunks ; CERTFR-2026-AVI-0726 : 22 chunks                                                         |
+
+Les résultats détaillés ont été exportés dans le dossier `analytics/results/` :
+
+* `summary.json`
+* `top_products.csv`
+* `documents_by_month.csv`
+* `documents_by_year.csv`
+* `chunks_by_document.csv`
+
+Deux graphiques ont également été générés dans le dossier `docs/figures/` :
+
+* `top_products.png`
+* `chunks_by_document.png`
+
+Ces résultats permettent d'avoir une première vue d'ensemble du corpus, notamment sur les produits concernés et la taille des avis CERT-FR analysés.
+
+
+### Qualité et exploitation RAG
+
 | Métrique                     | Valeur      |
 | ---------------------------- | ----------- |
 | Score similarité moyen top-k | |

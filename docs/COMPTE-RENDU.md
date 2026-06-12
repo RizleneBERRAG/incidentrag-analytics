@@ -1,246 +1,589 @@
-# Compte rendu - Projet B : IncidentRAG Analytics
+# Compte rendu — IncidentRAG Analytics
 
-## 1. Présentation
+## 1. Introduction
 
-**Équipe** : Rizlene Berrag et Franck Joel Nzokou
+Le projet **IncidentRAG Analytics** consiste à construire un pipeline RAG autour d'un corpus d'avis de sécurité CERT-FR.
 
-**Membres et rôles** :
+L'objectif est de permettre à un utilisateur de poser une question en langage naturel sur des avis de sécurité, puis d'obtenir une réponse basée sur les passages les plus pertinents retrouvés dans le corpus.
 
-* Rizlene Berrag - R1 Data / Ingestion
-* Franck Joel Nzokou - R2 Embeddings / Index
-* Franck Joel Nzokou - R3 Retrieval / LLM
-* Rizlene Berrag - R4 DevOps / Analytics
-
-**Projet** : B - IncidentRAG Analytics
-**Vector store** : Chroma
-**Dépôt GitHub** : https://github.com/RizleneBERRAG/incidentrag-analytics
+Le projet doit également fournir une analyse du corpus afin de dégager des tendances : produits récurrents, volume de documents, répartition temporelle et statistiques sur les chunks générés.
 
 ---
 
-## 2. Objectif
+## 2. Projet choisi
 
-Notre projet consiste à créer un RAG analytique capable d'interroger un corpus d'avis de sécurité CERT-FR.
+Nous avons choisi le **Projet B — IncidentRAG Analytics**.
 
-L'application doit permettre à un utilisateur de poser une question sur des vulnérabilités ou incidents de sécurité. Le système recherche alors les passages les plus pertinents dans le corpus, puis génère une réponse avec les sources utilisées.
+Les choix techniques principaux sont les suivants :
 
-En plus de la question/réponse classique, le projet doit proposer une analyse globale du corpus. Cette analyse doit permettre d'identifier des tendances, comme les produits ou éditeurs les plus souvent concernés, les catégories de risques les plus fréquentes ou les thèmes principaux des avis.
-
-L'objectif est donc double :
-
-* fournir une réponse contextualisée à partir des documents ;
-* extraire une vue d'ensemble du corpus pour mieux comprendre les incidents de sécurité.
-
----
-
-## 3. Architecture
-
-```mermaid
-flowchart TB
-    A[Corpus CERT-FR] --> B[Script fetch_corpus.ps1]
-    B --> C[Documents HTML dans corpus/raw]
-    C --> D[Ingestion des documents]
-    D --> E[Nettoyage du texte]
-    E --> F[Découpage en chunks]
-    F --> G[Fichier corpus/chunks.jsonl]
-
-    G --> H[Embeddings]
-    H --> I[Chroma]
-
-    I --> J[Recherche top-k]
-    J --> K[LLM]
-    K --> L[Réponse avec sources]
-
-    G --> M[Analyse du corpus]
-    M --> N[Statistiques produits / dates / documents]
-    N --> O[CSV, JSON et graphiques]
-```
-
-L'architecture possède deux sorties principales :
-
-* une sortie RAG Q/R pour répondre aux questions avec sources ;
-* une sortie analytique pour analyser l'ensemble du corpus.
-
-La partie RAG utilise les chunks générés à partir des avis CERT-FR. Ces chunks sont ensuite destinés à être transformés en embeddings puis stockés dans Chroma.
-
-La partie analytique exploite les métadonnées extraites pendant l'ingestion afin de produire des indicateurs simples : nombre de documents, nombre de chunks, produits les plus fréquents, répartition temporelle et documents les plus volumineux.
+* **Corpus** : avis de sécurité CERT-FR
+* **Vector store** : Chroma
+* **API** : FastAPI
+* **Modèle d'embedding** : `sentence-transformers/all-MiniLM-L6-v2`
+* **Interface** : page web intégrée à l'API
+* **Déploiement** : Docker Compose
 
 ---
 
-## 4. Fonctionnement
+## 3. Équipe et répartition des rôles
 
-### Parcours d'une question RAG
+Le projet a été réalisé par :
 
-1. L'utilisateur envoie une question à l'API via `POST /ask`.
-2. La question est transformée en embedding.
-3. Le système cherche dans Chroma les chunks les plus proches de la question.
-4. Les meilleurs passages sont envoyés au LLM comme contexte.
-5. Le LLM génère une réponse basée uniquement sur les passages récupérés.
-6. La réponse est retournée avec les sources utilisées.
+* Rizlene Berrag
+* Franck Joel Nzokou
 
-### Parcours d'une analyse
+La répartition initiale était la suivante :
 
-1. Les documents CERT-FR sont récupérés avec le script `scripts/fetch_corpus.ps1`.
-2. Les fichiers HTML sont stockés localement dans `corpus/raw/`.
-3. Le script `app/ingest.py` lit les fichiers HTML.
-4. Le contenu est nettoyé afin d'enlever les éléments de navigation inutiles.
-5. Les documents sont découpés en chunks.
-6. Chaque chunk reçoit des métadonnées : identifiant CERT-FR, titre, année, date, produit, systèmes affectés, source et URL.
-7. Le fichier `corpus/chunks.jsonl` est généré.
-8. Le script `analytics/clustering.py` lit les chunks et produit une première analyse.
-9. Les résultats sont exportés en CSV, JSON et graphiques PNG.
+| Membre             | Rôle                  | Responsabilités                                                                                                    |
+| ------------------ | --------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Rizlene Berrag     | R1 Data / Ingestion   | Récupération du corpus, extraction du texte utile, nettoyage HTML, extraction des métadonnées, découpage en chunks |
+| Rizlene Berrag     | R4 DevOps / Analytics | Analyse du corpus, génération des résultats CSV/JSON, graphiques, Docker, interface web, finalisation du rendu     |
+| Franck Joel Nzokou | R2 Embeddings / Index | Génération des embeddings, indexation dans Chroma                                                                  |
+| Franck Joel Nzokou | R3 Retrieval / LLM    | Recherche des chunks pertinents, génération de réponse, API RAG                                                    |
+
+En fin de projet, certaines briques ont été reprises et finalisées afin d'obtenir un MVP complet, testable et présentable.
 
 ---
 
-## 5. Structure du projet
+## 4. Objectifs du projet
+
+Les objectifs principaux étaient :
+
+* récupérer un corpus d'avis CERT-FR ;
+* extraire les contenus utiles depuis des fichiers HTML ;
+* nettoyer les données ;
+* extraire des métadonnées exploitables ;
+* découper les documents en chunks ;
+* générer des embeddings ;
+* indexer les chunks dans Chroma ;
+* rechercher les passages les plus pertinents selon une question ;
+* générer une réponse structurée avec sources ;
+* exposer un endpoint `POST /ask` ;
+* proposer une interface web de démonstration ;
+* produire une première analyse du corpus.
+
+---
+
+## 5. Architecture globale
+
+L'architecture du projet suit le principe suivant :
 
 ```txt
-incidentrag-analytics/
-├── analytics/
-│   ├── clustering.py              # Analyse du corpus et génération de résultats
-│   └── results/
-│       ├── summary.json           # Résumé global de l'analyse
-│       ├── top_products.csv       # Produits les plus fréquents
-│       ├── documents_by_month.csv # Répartition des avis par mois
-│       ├── documents_by_year.csv  # Répartition des avis par année
-│       └── chunks_by_document.csv # Nombre de chunks par avis
-│
-├── app/
-│   ├── ingest.py                  # Préparation, nettoyage et découpage du corpus
-│   ├── embed.py                   # Génération des embeddings
-│   ├── store.py                   # Adaptateur Chroma
-│   ├── retrieve.py                # Recherche des chunks pertinents
-│   ├── generate.py                # Génération de réponse avec le LLM
-│   ├── api.py                     # API FastAPI avec endpoint POST /ask
-│   └── metrics.py                 # Mesures de performance
-│
-├── corpus/
-│   ├── raw/                       # Corpus téléchargé localement, non committé
-│   ├── seed/                      # Corpus seed fourni par le TP, committé
-│   └── .gitkeep
-│
-├── docs/
-│   ├── COMPTE-RENDU.md            # Compte rendu du projet
-│   └── figures/
-│       ├── top_products.png
-│       └── chunks_by_document.png
-│
-├── scripts/
-│   └── fetch_corpus.ps1           # Script de récupération du corpus CERT-FR
-│
-├── .env.example
-├── .gitignore
-├── docker-compose.yml
-├── requirements.txt
-└── README.md
+Avis CERT-FR
+    ↓
+Récupération du corpus
+    ↓
+Nettoyage et ingestion
+    ↓
+Découpage en chunks
+    ↓
+Génération d'embeddings
+    ↓
+Indexation dans Chroma
+    ↓
+Recherche vectorielle
+    ↓
+Réponse avec sources
+    ↓
+API FastAPI + interface web
+```
+
+Cette architecture permet de séparer clairement les responsabilités :
+
+* `scripts/fetch_corpus.ps1` récupère les avis CERT-FR ;
+* `app/ingest.py` nettoie et découpe les documents ;
+* `app/embed.py` génère les embeddings ;
+* `app/store.py` gère Chroma ;
+* `app/retrieve.py` recherche les passages pertinents ;
+* `app/generate.py` construit une réponse à partir des passages retrouvés ;
+* `app/api.py` expose l'API et l'interface web ;
+* `analytics/clustering.py` produit les statistiques du corpus.
+
+---
+
+## 6. Ingestion du corpus
+
+La première étape a consisté à récupérer des avis de sécurité CERT-FR.
+
+Le script PowerShell `scripts/fetch_corpus.ps1` permet de télécharger automatiquement des avis depuis le site CERT-FR et de les stocker dans le dossier :
+
+```txt
+corpus/raw/
+```
+
+Les fichiers HTML récupérés sont ensuite traités par :
+
+```txt
+app/ingest.py
+```
+
+Ce script effectue plusieurs opérations :
+
+* lecture des fichiers HTML ;
+* extraction du texte utile ;
+* suppression du bruit lié à la navigation ;
+* correction de l'encodage ;
+* extraction des métadonnées ;
+* découpage en chunks ;
+* génération du fichier final `corpus/chunks.jsonl`.
+
+Les métadonnées extraites sont notamment :
+
+* identifiant CERT-FR ;
+* titre de l'avis ;
+* date ;
+* produit concerné ;
+* systèmes affectés ;
+* risques ;
+* source ;
+* URL.
+
+---
+
+## 7. Découpage en chunks
+
+Le corpus est découpé en chunks afin d'être exploitable par un système RAG.
+
+Le fichier généré est :
+
+```txt
+corpus/chunks.jsonl
+```
+
+Chaque ligne correspond à un chunk contenant :
+
+* un identifiant unique ;
+* le texte du chunk ;
+* les métadonnées associées.
+
+Sur le corpus testé, le pipeline a généré :
+
+```txt
+10 documents analysés
+226 chunks générés
+```
+
+Ce fichier constitue la base utilisée pour l'indexation vectorielle.
+
+---
+
+## 8. Embeddings et indexation Chroma
+
+Le fichier :
+
+```txt
+app/embed.py
+```
+
+charge les chunks depuis `corpus/chunks.jsonl`, puis utilise le modèle :
+
+```txt
+sentence-transformers/all-MiniLM-L6-v2
+```
+
+pour générer les embeddings.
+
+Les vecteurs sont ensuite stockés dans Chroma via :
+
+```txt
+app/store.py
+```
+
+La collection utilisée est :
+
+```txt
+rag_chunks
+```
+
+Chroma est lancé avec Docker Compose. En local, il est exposé sur :
+
+```txt
+localhost:8001
+```
+
+Dans Docker, l'API communique avec le service Chroma via :
+
+```txt
+CHROMA_HOST=chroma
+CHROMA_PORT=8000
+```
+
+L'indexation a été testée avec succès sur les 226 chunks du corpus.
+
+---
+
+## 9. Recherche vectorielle
+
+Le fichier :
+
+```txt
+app/retrieve.py
+```
+
+permet d'encoder une question utilisateur avec le même modèle d'embedding, puis de rechercher dans Chroma les chunks les plus proches.
+
+Exemple de question testée :
+
+```txt
+Quelles vulnérabilités concernent Microsoft Windows ?
+```
+
+Le système a correctement retrouvé comme premier résultat :
+
+```txt
+CERTFR-2026-AVI-0728 — Multiples vulnérabilités dans Microsoft Windows
+```
+
+Ce résultat valide le fonctionnement de la recherche sémantique.
+
+---
+
+## 10. Génération de réponse avec sources
+
+Le fichier :
+
+```txt
+app/generate.py
+```
+
+construit une réponse à partir des passages retrouvés.
+
+Le système retourne :
+
+* la question posée ;
+* une réponse structurée ;
+* les sources utilisées ;
+* les métadonnées des sources ;
+* un extrait de chaque chunk.
+
+La réponse est volontairement basée uniquement sur le corpus indexé afin d'éviter les hallucinations.
+
+Le système fonctionne sans dépendance obligatoire à une API LLM externe. Cela permet une démonstration stable et reproductible, même sans clé API.
+
+---
+
+## 11. API FastAPI
+
+L'API est définie dans :
+
+```txt
+app/api.py
+```
+
+Elle expose notamment :
+
+```txt
+GET /
+GET /health
+GET /api
+POST /ask
+GET /docs
+```
+
+Le endpoint principal est :
+
+```txt
+POST /ask
+```
+
+Exemple de requête :
+
+```json
+{
+  "question": "Quelles vulnérabilités concernent Microsoft Windows ?"
+}
+```
+
+Exemple de réponse :
+
+```json
+{
+  "question": "Quelles vulnérabilités concernent Microsoft Windows ?",
+  "answer": "D'après les avis CERT-FR retrouvés dans le corpus...",
+  "sources": [
+    {
+      "cert_id": "CERTFR-2026-AVI-0728",
+      "title": "Multiples vulnérabilités dans Microsoft Windows",
+      "url": "https://www.cert.ssi.gouv.fr/avis/CERTFR-2026-AVI-0728/"
+    }
+  ]
+}
 ```
 
 ---
 
-## 6. Choix techniques
+## 12. Interface web
 
-| Choix                                   | Valeur retenue                                                       | Justification                                                                  |
-| --------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Modèle embeddings                       | all-MiniLM-L6-v2                                                     | Modèle local léger, adapté au TP, avec des vecteurs de dimension 384           |
-| Vector store                            | Chroma                                                               | Vector store demandé pour le Projet B, simple à utiliser avec Python           |
-| Métadonnées extraites du corpus CERT-FR | cert_id, titre, année, date, produit, systèmes affectés, source, URL | Ces informations facilitent la recherche, les citations et l'analyse du corpus |
-| Méthode d'analyse                       | Comptage par produit, mois et document                               | Première analyse simple et exploitable rapidement pour le rendu                |
-| Méthode de clustering                   | KMeans                                                               | Prévu pour la suite afin de regrouper les chunks par thèmes                    |
-| LLM                                     | À compléter                                                          | Le choix dépendra de l'API gratuite disponible pendant le TP                   |
+Une interface web a été ajoutée dans :
 
----
+```txt
+app/static/index.html
+```
 
-## 7. Résultats / métriques
+Elle permet de tester le système sans passer par Swagger ou PowerShell.
 
-### Qualité et exploitation RAG
+L'interface propose :
 
-La partie RAG complète dépend de l'indexation dans Chroma et de la génération LLM, qui seront finalisées dans les rôles R2 et R3.
+* une zone de question ;
+* un bouton d'envoi ;
+* des exemples de questions ;
+* l'affichage de la réponse ;
+* l'affichage des sources ;
+* un résumé technique du système.
 
-| Métrique                     | Valeur                                   |
-| ---------------------------- | ---------------------------------------- |
-| Score similarité moyen top-k | À compléter après indexation Chroma      |
-| Latence p50 / p95            | À compléter après mise en place de l'API |
-| Tokens moyens                | À compléter après intégration du LLM     |
-
-### Analytique
-
-Une première analyse du corpus CERT-FR a été réalisée à partir des chunks générés par le pipeline d'ingestion.
-
-| Analyse                          | Résultat                                                                                                                                                        |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Nombre de documents analysés     | 10 avis CERT-FR                                                                                                                                                 |
-| Nombre de chunks générés         | 226 chunks                                                                                                                                                      |
-| Top produits / éditeurs affectés | Typo3, Stormshield Network Security, Ivanti, Fortinet, Microsoft Edge, Microsoft Office, Microsoft Windows, Microsoft .Net, Microsoft Azure, produits Microsoft |
-| Tendance des avis par mois       | 10 avis en 2026-06                                                                                                                                              |
-| Documents les plus volumineux    | CERTFR-2026-AVI-0731 : 101 chunks ; CERTFR-2026-AVI-0728 : 60 chunks ; CERTFR-2026-AVI-0726 : 22 chunks                                                         |
-
-Les résultats détaillés ont été exportés dans le dossier `analytics/results/` :
-
-* `summary.json`
-* `top_products.csv`
-* `documents_by_month.csv`
-* `documents_by_year.csv`
-* `chunks_by_document.csv`
-
-Deux graphiques ont également été générés dans le dossier `docs/figures/` :
-
-* `top_products.png`
-* `chunks_by_document.png`
-
-Ces résultats permettent d'avoir une première vue d'ensemble du corpus, notamment sur les produits concernés et la taille des avis CERT-FR analysés.
+Cette interface facilite la démonstration du projet.
 
 ---
 
-## 8. Difficultés et limites
+## 13. Analyse du corpus
 
-Plusieurs difficultés ont été rencontrées pendant la mise en place de la partie Data / Ingestion et Analytics.
+Le script :
 
-La première difficulté concernait l'encodage des fichiers HTML récupérés depuis le site CERT-FR. Les caractères accentués apparaissaient parfois de manière incorrecte dans PowerShell avec `Get-Content`. Une vérification avec Python a permis de confirmer que les fichiers générés étaient bien lisibles en UTF-8.
+```txt
+analytics/clustering.py
+```
 
-La deuxième difficulté était liée au nettoyage du contenu HTML. Les premières versions de l'ingestion récupéraient également le menu du site, les liens de navigation et les flux RSS. Le script a donc été amélioré afin de conserver principalement le contenu utile des avis CERT-FR : référence, titre, date, objet, systèmes affectés et informations liées à l'avis.
+réalise une analyse simple du corpus.
 
-Une autre limite concerne l'extraction automatique des métadonnées. Certaines informations comme les risques ou les produits affectés peuvent varier selon la structure des avis. L'extraction actuelle fonctionne sur les premiers avis testés, mais pourrait être améliorée avec des règles plus précises.
+Il génère plusieurs fichiers :
 
-Enfin, l'analyse reste une première approche simple. Elle permet de compter les produits, les documents et les chunks, mais le clustering thématique complet devra être enrichi avec les embeddings et l'indexation Chroma.
+```txt
+analytics/results/summary.json
+analytics/results/top_products.csv
+analytics/results/documents_by_month.csv
+analytics/results/documents_by_year.csv
+analytics/results/chunks_by_document.csv
+```
+
+Il génère également des graphiques :
+
+```txt
+docs/figures/top_products.png
+docs/figures/chunks_by_document.png
+```
+
+Les résultats obtenus sur le corpus testé sont :
+
+```txt
+Nombre de documents : 10
+Nombre de chunks : 226
+Période : juin 2026
+```
+
+Produits détectés dans le corpus :
+
+* Typo3
+* Stormshield Network Security
+* Ivanti
+* Fortinet
+* Microsoft Edge
+* Microsoft Office
+* Microsoft Windows
+* Microsoft .Net
+* Microsoft Azure
+* produits Microsoft
+
+Cette analyse permet d'avoir une vision globale du corpus avant même d'interroger le système RAG.
 
 ---
 
-## 9. Bonus - Tendances temporelles approfondies
+## 14. Docker et déploiement
 
-Cette partie pourra être complétée si le temps le permet.
+Le projet contient :
 
-L'idée serait d'étendre l'analyse temporelle afin d'étudier l'évolution des avis CERT-FR sur plusieurs mois. Pour l'instant, le test a été réalisé sur 10 avis récents, tous datés de juin 2026.
+```txt
+Dockerfile
+docker-compose.yml
+.dockerignore
+```
 
-Une amélioration possible serait d'augmenter le nombre d'avis récupérés afin d'obtenir une tendance plus représentative sur plusieurs mois.
+Le `docker-compose.yml` lance deux services :
+
+* `chroma` : base vectorielle ChromaDB ;
+* `api` : API FastAPI du projet.
+
+Commandes principales :
+
+```bash
+docker compose up --build
+```
+
+Si la base Chroma est vide :
+
+```bash
+docker compose run --rm api python -m app.embed
+```
+
+L'interface est ensuite accessible sur :
+
+```txt
+http://127.0.0.1:8000
+```
 
 ---
 
-## 10. Bonus - Monitoring de l'analyse en continu
+## 15. Tests effectués
 
-Cette partie pourra être complétée si le temps le permet.
+Plusieurs tests ont été réalisés.
 
-Une piste d'amélioration serait de relancer régulièrement le script de récupération du corpus afin de détecter l'apparition de nouveaux avis CERT-FR.
+### Test d'ingestion
 
-Le monitoring pourrait permettre de suivre :
+```bash
+python -m app.ingest
+```
 
-* le nombre de nouveaux avis ;
-* les produits les plus touchés ;
-* les catégories de risques les plus fréquentes ;
-* l'évolution du volume documentaire ;
-* la latence moyenne du pipeline RAG.
+Résultat :
+
+```txt
+10 documents HTML trouvés
+226 chunks générés
+```
+
+### Test d'analyse
+
+```bash
+python -m analytics.clustering
+```
+
+Résultat :
+
+```txt
+summary.json généré
+CSV générés
+graphiques générés
+```
+
+### Test d'indexation
+
+```bash
+python -m app.embed
+```
+
+Résultat :
+
+```txt
+226 chunks indexés dans Chroma
+```
+
+### Test de retrieval
+
+```bash
+python -m app.retrieve
+```
+
+Résultat :
+
+```txt
+CERTFR-2026-AVI-0728 — Multiples vulnérabilités dans Microsoft Windows
+```
+
+### Test de génération
+
+```bash
+python -m app.generate
+```
+
+Résultat :
+
+```txt
+Réponse structurée avec sources CERT-FR
+```
+
+### Test API
+
+```powershell
+$body = @{
+    question = "Quelles vulnérabilités concernent Microsoft Windows ?"
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8000/ask" `
+  -Method POST `
+  -ContentType "application/json; charset=utf-8" `
+  -Body $body
+```
+
+Résultat :
+
+```txt
+question
+answer
+sources
+```
 
 ---
 
-## 11. Bonus - Pistes d'amélioration
+## 16. Difficultés rencontrées
 
-Plusieurs pistes d'amélioration sont possibles :
+Plusieurs difficultés ont été rencontrées pendant le projet.
 
-* améliorer l'extraction des risques ;
-* exploiter davantage les fichiers JSON CERT-FR lorsqu'ils sont disponibles ;
-* augmenter le volume du corpus ;
-* ajouter un vrai clustering thématique avec KMeans ;
-* nommer automatiquement les clusters avec le LLM ;
-* ajouter un tableau de bord analytique ;
-* améliorer le prompt anti-hallucination ;
-* ajouter un seuil de similarité pour refuser de répondre lorsque les sources sont insuffisantes ;
-* ajouter des tests automatisés sur l'ingestion et la recherche ;
-* améliorer la documentation de lancement du projet.
+### Nettoyage HTML
+
+Les pages CERT-FR contiennent du bruit : navigation, menus, mentions répétées, contenus techniques longs. Il a fallu extraire seulement les parties utiles.
+
+### Encodage
+
+Certains contenus affichaient des caractères incorrects. Un travail a été nécessaire pour nettoyer les textes et limiter les problèmes d'encodage.
+
+### Métadonnées
+
+Les informations utiles ne sont pas toujours structurées de la même manière. Il a donc fallu prévoir une extraction tolérante.
+
+### Chroma
+
+L'utilisation de Chroma demande de bien distinguer :
+
+* le port local exposé sur la machine ;
+* le port utilisé entre conteneurs Docker ;
+* le nom du service Docker.
+
+### PowerShell
+
+Lors des tests API, PowerShell affichait parfois mal les accents, même lorsque l'API retournait bien du JSON UTF-8. Cela a été identifié comme un problème d'affichage terminal et non comme un problème du backend.
+
+---
+
+## 17. Limites du projet
+
+Le projet constitue un MVP fonctionnel.
+
+La limite principale est que la génération de réponse ne repose pas encore sur un grand modèle de langage externe connecté. Le système construit une réponse à partir des passages retrouvés dans le corpus.
+
+Ce choix permet :
+
+* de limiter les coûts ;
+* de garantir une démonstration reproductible ;
+* d'éviter les hallucinations ;
+* de garder une réponse basée sur les sources.
+
+Cependant, les réponses peuvent être moins naturelles ou moins synthétiques qu'avec un LLM complet.
+
+Améliorations possibles :
+
+* brancher un LLM local ou externe ;
+* améliorer la reformulation des réponses ;
+* enrichir les métadonnées ;
+* ajouter un historique des conversations ;
+* ajouter des tests automatisés ;
+* améliorer l'analyse des risques ;
+* proposer un tableau de bord analytics intégré.
+
+---
+
+## 18. Conclusion
+
+Le projet a permis de construire un pipeline RAG complet autour d'un corpus CERT-FR.
+
+Le système permet aujourd'hui de :
+
+* récupérer et préparer un corpus ;
+* découper les avis en chunks ;
+* générer des embeddings ;
+* indexer les chunks dans Chroma ;
+* rechercher les passages les plus pertinents ;
+* produire une réponse avec sources ;
+* interroger le système via une API ;
+* utiliser une interface web de démonstration ;
+* analyser le corpus avec des fichiers CSV/JSON et des graphiques.
+
+Le pipeline final est donc fonctionnel, testable et démontrable.

@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IncidentRAG Analytics — Assistant IA CERT-FR</title>
+
+    <style>
+        :root {
+            --bg: #05070d;
+            --bg-soft: #080c14;
+            --surface: #0d111c;
+            --surface-2: #111827;
+            --surface-3: #151d2d;
+            --border: rgba(148, 163, 184, 0.16);
+            --border-strong: rgba(148, 163, 184, 0.28);
+            --text: #e5e7eb;
+            --muted: #94a3b8;
+            --muted-2: #64748b;
+            --primary: #38bdf8;
+            --primary-soft: rgba(56, 189, 248, 0.12);
+            --green: #22c55e;
+            --green-soft: rgba(34, 197, 94, 0.12);
+            --red: #ef4444;
+            --red-soft: rgba(239, 68, 68, 0.1);
+            --shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+            --radius-xl: 26px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(56, 189, 248, 0.10), transparent 34%),
+                radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 28%),
+                linear-gradient(180deg, #05070d 0%, #070a12 55%, #05070d 100%);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(148, 163, 184, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(148, 163, 184, 0.035) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.75), transparent 82%);
+        }
+
+        .page {
+            position: relative;
+            z-index: 1;
+            width: min(1220px, calc(100% - 36px));
+            margin: 0 auto;
+            padding: 28px 0 34px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 22px;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: rgba(13, 17, 28, 0.74);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 16px 45px rgba(0, 0, 0, 0.28);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .brand-mark {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background:
+                linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(34, 197, 94, 0.13)),
+                #0b1220;
+            border: 1px solid rgba(56, 189, 248, 0.28);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: var(--primary);
+            letter-spacing: -0.04em;
+            flex-shrink: 0;
+        }
+
+        .brand-title {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .brand-title strong {
+            font-size: 15px;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+
+        .brand-title span {
+            font-size: 12px;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 12px;
+            border-radius: 999px;
+            background: var(--green-soft);
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            font-size: 13px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 18px rgba(34, 197, 94, 0.7);
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 22px;
+            align-items: stretch;
+            margin-bottom: 22px;
+        }
+
+        .hero-main,
+        .system-panel,
+        .chat-card,
+        .side-card {
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(17, 24, 39, 0.88), rgba(13, 17, 28, 0.92));
+            box-shadow: var(--shadow);
+        }
+
+        .hero-main {
+            border-radius: var(--radius-xl);
+            padding: 34px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hero-main::after {
+            content: "";
+            position: absolute;
+            right: -80px;
+            top: -80px;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: rgba(56, 189, 248, 0.08);
+            filter: blur(4px);
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            color: #bae6fd;
+            background: var(--primary-soft);
+            border: 1px solid rgba(56, 189, 248, 0.18);
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 900;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            position: relative;
+            z-index: 2;
+            margin: 0;
+            font-size: clamp(38px, 5vw, 70px);
+            line-height: 0.95;
+            letter-spacing: -2.2px;
+            color: #f8fafc;
+        }
+
+        .hero-main p {
+            position: relative;
+            z-index: 2;
+            max-width: 780px;
+            margin: 20px 0 0;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .system-panel {
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .panel-title {
+            margin: 0 0 16px;
+            font-size: 18px;
+            color: #f8fafc;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .metric {
+            background: rgba(15, 23, 42, 0.78);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 16px;
+        }
+
+        .metric span {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .metric strong {
+            display: block;
+            color: #e0f2fe;
+            font-size: 20px;
+            letter-spacing: -0.02em;
+        }
+
+        .pipeline {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 9px;
+        }
+
+        .pipeline li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #cbd5e1;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .pipeline li::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.5);
+            flex-shrink: 0;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 22px;
+            align-items: start;
+        }
+
+        .chat-card {
+            height: 760px;
+            max-height: calc(100vh - 130px);
+            min-height: 620px;
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 20px 22px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(8, 12, 20, 0.85);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        .chat-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #f8fafc;
+        }
+
+        .chat-header p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .conversation-toolbar {
+            padding: 12px 22px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(5, 7, 13, 0.92);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            flex-shrink: 0;
+        }
+
+        .conversation-info {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .conversation-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.82);
+            color: #cbd5e1;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .tool-btn:hover {
+            color: #e0f2fe;
+            border-color: rgba(56, 189, 248, 0.4);
+            background: rgba(56, 189, 248, 0.08);
+        }
+
+        .tool-btn.danger {
+            color: #fecaca;
+            border-color: rgba(239, 68, 68, 0.28);
+            background: rgba(239, 68, 68, 0.08);
+        }
+
+        .tool-btn.danger:hover {
+            color: #ffffff;
+            border-color: rgba(239, 68, 68, 0.45);
+            background: rgba(239, 68, 68, 0.18);
+        }
+
+        .messages {
+            flex: 1;
+            min-height: 0;
+            padding: 22px;
+            background:
+                radial-gradient(circle at top right, rgba(56, 189, 248, 0.045), transparent 32%),
+                rgba(5, 7, 13, 0.58);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(56, 189, 248, 0.55) rgba(15, 23, 42, 0.9);
+        }
+
+        .messages::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .messages::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        .messages::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.45);
+            border-radius: 999px;
+            border: 2px solid rgba(15, 23, 42, 0.9);
+        }
+
+        .messages::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.7);
+        }
+
+        .message {
+            width: fit-content;
+            max-width: 88%;
+            padding: 15px 17px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.58;
+            white-space: pre-wrap;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            color: #ffffff;
+            background: linear-gradient(135deg, #2563eb, #0ea5e9);
+            border-bottom-right-radius: 6px;
+            box-shadow: 0 12px 28px rgba(14, 165, 233, 0.18);
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            color: #dbeafe;
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 6px;
+        }
+
+        .message.loading {
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        .sources {
+            margin-top: 14px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .source {
+            background: rgba(2, 6, 23, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px;
+        }
+
+        .source strong {
+            display: block;
+            color: #e0f2fe;
+            font-size: 13px;
+            margin-bottom: 7px;
+        }
+
+        .source a {
+            color: #7dd3fc;
+            font-size: 12.5px;
+            font-weight: 800;
+            word-break: break-word;
+            text-decoration: none;
+        }
+
+        .source a:hover {
+            text-decoration: underline;
+        }
+
+        .source p {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 12.5px;
+            line-height: 1.5;
+        }
+
+        .input-area {
+            padding: 18px;
+            border-top: 1px solid var(--border);
+            background: rgba(8, 12, 20, 0.95);
+            flex-shrink: 0;
+        }
+
+        .form {
+            display: flex;
+            gap: 12px;
+            align-items: end;
+        }
+
+        textarea {
+            flex: 1;
+            resize: none;
+            min-height: 58px;
+            max-height: 160px;
+            border: 1px solid var(--border-strong);
+            background: rgba(2, 6, 23, 0.68);
+            color: var(--text);
+            border-radius: 18px;
+            padding: 15px 16px;
+            font-family: inherit;
+            font-size: 15px;
+            line-height: 1.45;
+            outline: none;
+        }
+
+        textarea::placeholder {
+            color: var(--muted-2);
+        }
+
+        textarea:focus {
+            border-color: rgba(56, 189, 248, 0.65);
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.08);
+        }
+
+        .send-btn {
+            min-height: 58px;
+            border: none;
+            border-radius: 18px;
+            padding: 0 22px;
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: white;
+            font-size: 14px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: 0.2s ease;
+            box-shadow: 0 14px 32px rgba(37, 99, 235, 0.2);
+        }
+
+        .send-btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.08);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .side {
+            display: grid;
+            gap: 18px;
+        }
+
+        .side-card {
+            border-radius: var(--radius-xl);
+            padding: 22px;
+        }
+
+        .side-card h3 {
+            margin: 0 0 14px;
+            font-size: 18px;
+            color: #f8fafc;
+        }
+
+        .examples {
+            display: grid;
+            gap: 10px;
+        }
+
+        .example-btn {
+            width: 100%;
+            text-align: left;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.74);
+            color: #cbd5e1;
+            border-radius: 15px;
+            padding: 13px 14px;
+            font-size: 13.5px;
+            font-weight: 800;
+            line-height: 1.4;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .example-btn:hover {
+            color: #e0f2fe;
+            border-color: rgba(56, 189, 248, 0.4);
+            background: rgba(56, 189, 248, 0.08);
+        }
+
+        .info-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 11px;
+        }
+
+        .info-list li {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 13.5px;
+        }
+
+        .info-list li:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .info-list strong {
+            color: #dbeafe;
+            text-align: right;
+        }
+
+        .footer-note {
+            margin-top: 18px;
+            color: var(--muted-2);
+            font-size: 12.5px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 980px) {
+            .hero,
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .message {
+                max-width: 100%;
+            }
+
+            .chat-card {
+                max-height: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .page {
+                width: min(100% - 22px, 1220px);
+                padding: 16px 0 24px;
+            }
+
+            .topbar {
+                border-radius: 22px;
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .hero-main,
+            .system-panel,
+            .side-card {
+                padding: 22px;
+            }
+
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .chat-card {
+                height: 720px;
+                max-height: none;
+                min-height: 620px;
+            }
+
+            .chat-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .conversation-toolbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .conversation-actions {
+                width: 100%;
+            }
+
+            .tool-btn {
+                flex: 1;
+                text-align: center;
+            }
+
+            .form {
+                flex-direction: column;
+            }
+
+            .send-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<main class="page">
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark">IR</div>
+            <div class="brand-title">
+                <strong>IncidentRAG Analytics</strong>
+                <span>Assistant IA sur corpus CERT-FR</span>
+            </div>
+        </div>
+
+        <div class="top-actions">
+            <span class="status-pill">
+                <span class="dot"></span>
+                API opérationnelle
+            </span>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-main">
+            <div class="tag">Système RAG · Chroma · CERT-FR</div>
+            <h1>Assistant IA cybersécurité</h1>
+            <p>
+                Interrogez le corpus CERT-FR indexé dans Chroma. L’assistant retrouve les passages pertinents,
+                synthétise une réponse et affiche les sources utilisées pour chaque résultat.
+            </p>
+        </div>
+
+        <aside class="system-panel">
+            <div>
+                <h2 class="panel-title">Pipeline actif</h2>
+                <ul class="pipeline">
+                    <li>Question utilisateur</li>
+                    <li>Embedding de la question</li>
+                    <li>Recherche vectorielle top-k</li>
+                    <li>Réponse structurée avec sources</li>
+                </ul>
+            </div>
+
+            <div class="metrics">
+                <div class="metric">
+                    <span>Vector store</span>
+                    <strong>Chroma</strong>
+                </div>
+                <div class="metric">
+                    <span>Endpoint</span>
+                    <strong>/ask</strong>
+                </div>
+            </div>
+        </aside>
+    </section>
+
+    <section class="main-grid">
+        <article class="chat-card">
+            <header class="chat-header">
+                <div>
+                    <h2>Console de question-réponse</h2>
+                    <p>Pose une question au système RAG. Les réponses s’appuient uniquement sur les chunks indexés.</p>
+                </div>
+
+                <span class="status-pill">
+                    <span class="dot"></span>
+                    Connecté
+                </span>
+            </header>
+
+            <div class="conversation-toolbar">
+                <div class="conversation-info">
+                    <span id="conversationCount">1 message</span>
+                </div>
+
+                <div class="conversation-actions">
+                    <button type="button" class="tool-btn" id="scrollTopBtn">↑ Début</button>
+                    <button type="button" class="tool-btn" id="scrollBottomBtn">↓ Bas</button>
+                    <button type="button" class="tool-btn danger" id="clearChatBtn">Nouvelle conversation</button>
+                </div>
+            </div>
+
+            <div id="messages" class="messages">
+                <div class="message assistant">
+Bonjour. Je suis l’assistant IncidentRAG.
+
+Je peux rechercher dans les avis CERT-FR indexés et retourner une réponse avec les sources utilisées.
+                </div>
+            </div>
+
+            <div class="input-area">
+                <form id="askForm" class="form">
+                    <textarea
+                        id="questionInput"
+                        placeholder="Exemple : Quelles vulnérabilités concernent Microsoft Windows ?"
+                        required
+                    ></textarea>
+
+                    <button id="sendButton" class="send-btn" type="submit">
+                        Interroger
+                    </button>
+                </form>
+            </div>
+        </article>
+
+        <aside class="side">
+            <div class="side-card">
+                <h3>Questions rapides</h3>
+
+                <div class="examples">
+                    <button class="example-btn" data-question="Quelles vulnérabilités concernent Microsoft Windows ?">
+                        Quelles vulnérabilités concernent Microsoft Windows ?
+                    </button>
+
+                    <button class="example-btn" data-question="Quels produits Microsoft apparaissent dans le corpus ?">
+                        Quels produits Microsoft apparaissent dans le corpus ?
+                    </button>
+
+                    <button class="example-btn" data-question="Quels sont les risques mentionnés dans les avis CERT-FR ?">
+                        Quels sont les risques mentionnés dans les avis CERT-FR ?
+                    </button>
+
+                    <button class="example-btn" data-question="Quels systèmes sont affectés par les vulnérabilités Microsoft .Net ?">
+                        Quels systèmes sont affectés par Microsoft .Net ?
+                    </button>
+                </div>
+            </div>
+
+            <div class="side-card">
+                <h3>État technique</h3>
+
+                <ul class="info-list">
+                    <li>
+                        <span>Corpus</span>
+                        <strong>CERT-FR</strong>
+                    </li>
+                    <li>
+                        <span>Embeddings</span>
+                        <strong>MiniLM-L6-v2</strong>
+                    </li>
+                    <li>
+                        <span>Stockage</span>
+                        <strong>ChromaDB</strong>
+                    </li>
+                    <li>
+                        <span>Sources</span>
+                        <strong>Activées</strong>
+                    </li>
+                    <li>
+                        <span>API</span>
+                        <strong>FastAPI</strong>
+                    </li>
+                </ul>
+
+                <p class="footer-note">
+                    Les réponses sont générées à partir des passages retrouvés dans le corpus indexé.
+                    Chaque réponse expose les sources utilisées.
+                </p>
+            </div>
+        </aside>
+    </section>
+</main>
+
+<script>
+    const form = document.getElementById("askForm");
+    const input = document.getElementById("questionInput");
+    const messages = document.getElementById("messages");
+    const sendButton = document.getElementById("sendButton");
+    const exampleButtons = document.querySelectorAll(".example-btn");
+
+    const scrollTopBtn = document.getElementById("scrollTopBtn");
+    const scrollBottomBtn = document.getElementById("scrollBottomBtn");
+    const clearChatBtn = document.getElementById("clearChatBtn");
+    const conversationCount = document.getElementById("conversationCount");
+
+    function updateConversationCount() {
+        const total = messages.querySelectorAll(".message").length;
+        conversationCount.textContent = total > 1 ? `${total} messages` : `${total} message`;
+    }
+
+    function scrollToBottom() {
+        messages.scrollTo({
+            top: messages.scrollHeight,
+            behavior: "smooth"
+        });
+    }
+
+    function scrollToTop() {
+        messages.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    }
+
+    function clearConversation() {
+        messages.innerHTML = "";
+
+        addMessage(
+            "Nouvelle conversation démarrée.\n\nPose une question sur les avis CERT-FR indexés.",
+            "assistant"
+        );
+
+        input.focus();
+    }
+
+    function addMessage(content, type = "assistant", sources = []) {
+        const message = document.createElement("div");
+        message.className = `message ${type}`;
+        message.textContent = content;
+
+        if (sources.length > 0) {
+            const sourcesContainer = document.createElement("div");
+            sourcesContainer.className = "sources";
+
+            sources.forEach((source, index) => {
+                const sourceElement = document.createElement("div");
+                sourceElement.className = "source";
+
+                const title = document.createElement("strong");
+                title.textContent = `${index + 1}. ${source.cert_id || "Source CERT-FR"} — ${source.title || "Avis CERT-FR"}`;
+
+                const link = document.createElement("a");
+                link.href = source.url || "#";
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                link.textContent = source.url || "URL non disponible";
+
+                const excerpt = document.createElement("p");
+                excerpt.textContent = source.excerpt || "";
+
+                sourceElement.appendChild(title);
+                sourceElement.appendChild(link);
+                sourceElement.appendChild(excerpt);
+
+                sourcesContainer.appendChild(sourceElement);
+            });
+
+            message.appendChild(sourcesContainer);
+        }
+
+        messages.appendChild(message);
+        scrollToBottom();
+        updateConversationCount();
+
+        return message;
+    }
+
+    async function askQuestion(question) {
+        addMessage(question, "user");
+
+        sendButton.disabled = true;
+        sendButton.textContent = "Analyse...";
+
+        const loadingMessage = addMessage(
+            "Recherche vectorielle dans le corpus CERT-FR...",
+            "assistant loading"
+        );
+
+        try {
+            const response = await fetch("/ask", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ question })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erreur API : ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            loadingMessage.remove();
+            updateConversationCount();
+
+            addMessage(
+                data.answer || "Aucune réponse générée.",
+                "assistant",
+                data.sources || []
+            );
+        } catch (error) {
+            loadingMessage.remove();
+            updateConversationCount();
+
+            addMessage(
+                `Erreur : impossible d'obtenir une réponse.\n\nVérifie que Chroma est lancé et que les chunks sont indexés.\n\nDétail : ${error.message}`,
+                "assistant"
+            );
+        } finally {
+            sendButton.disabled = false;
+            sendButton.textContent = "Interroger";
+            input.focus();
+        }
+    }
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const question = input.value.trim();
+
+        if (!question) {
+            return;
+        }
+
+        input.value = "";
+        await askQuestion(question);
+    });
+
+    exampleButtons.forEach((button) => {
+        button.addEventListener("click", async () => {
+            const question = button.dataset.question;
+            input.value = question;
+            await askQuestion(question);
+        });
+    });
+
+    input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            form.requestSubmit();
+        }
+    });
+
+    scrollTopBtn.addEventListener("click", scrollToTop);
+    scrollBottomBtn.addEventListener("click", scrollToBottom);
+    clearChatBtn.addEventListener("click", clearConversation);
+
+    updateConversationCount();
+</script>
+</body>
+</html>

@@ -17,10 +17,9 @@ class ChromaStore:
             host=host,
             port=port
         )
-
         self.collection = None
 
-    def ensure_collection(self, dim=None):
+    def ensure_collection(self):
         """
         Crée ou récupère la collection Chroma.
         """
@@ -28,16 +27,17 @@ class ChromaStore:
         self.collection = self.client.get_or_create_collection(
             name="rag_chunks"
         )
-           
+
     def upsert(self, ids, vectors, texts, metadatas):
         """
         Ajoute ou met à jour des embeddings.
         """
 
         if self.collection is None:
-            raise RuntimeError(
-                "Collection non initialisée."
-            )
+            self.ensure_collection()
+
+        if not (len(ids) == len(vectors) == len(texts)):
+            raise ValueError("Incohérence entre ids, vectors et texts")
 
         self.collection.upsert(
             ids=ids,
@@ -52,9 +52,7 @@ class ChromaStore:
         """
 
         if self.collection is None:
-            raise RuntimeError(
-                "Collection non initialisée."
-            )
+            self.ensure_collection()
 
         results = self.collection.query(
             query_embeddings=[query_vector],
@@ -66,7 +64,6 @@ class ChromaStore:
         for i in range(len(results["ids"][0])):
 
             distance = results["distances"][0][i]
-
             score = 1.0 - distance
 
             hits.append(

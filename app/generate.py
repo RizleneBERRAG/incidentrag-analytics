@@ -1,24 +1,40 @@
-import os
 from app.retrieve import Retriever
 
 
 class Generator:
+    """
+    Classe principale RAG :
+    - récupère les documents pertinents
+    - construit le contexte
+    - génère une réponse (ou fallback local)
+    """
 
     def __init__(self):
         self.retriever = Retriever(top_k=5)
 
     def build_context(self, hits):
         """
-        Construit le contexte à partir des chunks récupérés.
+        Construit un contexte propre et limité pour le LLM.
         """
-
         context_parts = []
 
-        for h in hits:
+        for i, h in enumerate(hits):
+            text = (h.text or "").strip()
+
+            # limite taille pour éviter explosion du prompt
+            text = text[:800]
+
             context_parts.append(
                 f"""
-SOURCE: {h.metadata.get('cert_id')}
-TEXTE: {h.text}
+==============================
+SOURCE {i + 1}
+ID: {h.metadata.get('cert_id')}
+PRODUIT: {h.metadata.get('product')}
+SCORE: {round(h.score, 3)}
+
+CONTENU:
+{text}
+==============================
 """
             )
 
@@ -26,56 +42,67 @@ TEXTE: {h.text}
 
     def generate_prompt(self, question: str, context: str) -> str:
         """
-        Prompt RAG simple.
+        Prompt optimisé pour RAG.
         """
 
         return f"""
-Tu es un assistant expert en cybersécurité.
+Tu es un expert en cybersécurité travaillant sur des avis CERT-FR.
 
-Réponds uniquement à partir du contexte fourni.
+Tu dois répondre UNIQUEMENT à partir du contexte fourni.
 
-Si tu n'as pas assez d'informations, dis-le.
+Règles :
+- Si l'information n'est pas dans le contexte, dis : "information non disponible dans le corpus"
+- Réponse claire, structurée, professionnelle
+- Pas d'invention
 
 ---
 
-CONTEXTE:
+CONTEXTE :
 {context}
 
 ---
 
-QUESTION:
+QUESTION :
 {question}
 
 ---
 
-Réponse structurée et concise :
+RÉPONSE :
 """
 
     def call_llm(self, prompt: str) -> str:
         """
-        Version simple (fallback sans API externe).
+        Version fallback (sans API externe).
         """
 
-        # ⚠️ ici tu peux brancher OpenAI / Mistral plus tard
-        return "Réponse générée (LLM non connecté). Prompt utilisé:\n\n" + prompt[:800]
+        return (
+            "🧠 RÉPONSE (mode local)\n\n"
+            "Je m'appuie uniquement sur les documents CERT-FR fournis.\n\n"
+            "---\n\n"
+            + prompt[:1200]
+        )
 
     def answer(self, question: str):
         """
-        Pipeline complet RAG.
+        Pipeline complet RAG :
+        1. retrieval
+        2. construction du contexte
+        3. génération prompt
+        4. réponse
+        5. sources
         """
 
         hits = self.retriever.search(question)
-
         context = self.build_context(hits)
         prompt = self.generate_prompt(question, context)
-
         answer = self.call_llm(prompt)
 
         sources = [
             {
                 "cert_id": h.metadata.get("cert_id"),
+                "title": h.metadata.get("title"),
                 "url": h.metadata.get("url"),
-                "score": h.score
+                "score": round(h.score, 3),
             }
             for h in hits
         ]
@@ -83,24 +110,5 @@ Réponse structurée et concise :
         return {
             "question": question,
             "answer": answer,
-            "sources": sources
+            "sources": sources,
         }
-
-
-def test():
-    gen = Generator()
-
-    res = gen.answer(
-        "Quels sont les principaux risques dans les avis CERT-FR ?"
-    )
-
-    print("\n=== RÉPONSE ===\n")
-    print(res["answer"])
-
-    print("\n=== SOURCES ===\n")
-    for s in res["sources"]:
-        print(s)
-
-
-if __name__ == "__main__":
-    test()

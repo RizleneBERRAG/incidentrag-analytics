@@ -145,3 +145,42 @@ Premières étapes réalisées ou prévues :
 * Préparation du README
 * Préparation du compte rendu
 * Répartition des rôles entre les membres
+
+
+
+##  Démonstration du système RAG
+
+L’API FastAPI permet d’interroger le système RAG en temps réel.
+
+---
+
+###  1. Vérification de l’API
+
+Le service est bien lancé et accessible :
+
+![API running](docs/screenshots/Capturedecran20260612133614.png)
+
+---
+
+###  2. Requête utilisateur (POST /ask)
+
+Une question est envoyée au système :
+
+![Request](docs/screenshots/Capturedecran20260612133634.png)
+
+---
+
+###  3. Réponse générée par le système RAG
+
+Le système retourne une réponse basée sur le corpus CERT-FR avec les sources associées :
+
+![Response](docs/screenshots/Capturedecran20260612133650.png)
+
+![Response](docs/screenshots/Capturedecran20260612133713.png)
+
+![Response](docs/screenshots/Capturedecran20260612133730.png)
+
+---
+
+ Cela démontre le bon fonctionnement complet du pipeline :
+ingestion → embeddings → retrieval → génération → API

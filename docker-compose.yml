@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: chroma_db
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+
+  api:
+    build: .
+    container_name: incidentrag_api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - chroma
+    environment:
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - TOP_K=5
+      - SIMILARITY_THRESHOLD=0.55
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: uvicorn app.api:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  chroma_data:

@@ -195,6 +195,8 @@ def main():
     embedder = Embedder()
     embedder.run()
 
+    print("DEBUG IDS:", ids[:3])
+    print("DEBUG VECTORS:", len(vectors))
 
 if __name__ == "__main__":
     main()

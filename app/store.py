@@ -105,7 +105,8 @@ class ChromaStore:
 
         results = collection.query(
             query_embeddings=[query_vector],
-            n_results=top_k
+            n_results=top_k,
+            include=["documents", "metadatas", "distances"]
         )
 
         hits = []

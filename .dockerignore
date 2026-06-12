@@ -1,0 +1,12 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+.venv
+venv
+env
+.env
+chroma_data
+corpus/raw
+analytics/results
+docs/figures
